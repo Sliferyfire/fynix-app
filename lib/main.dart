@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fynix/providers/user_data_provider.dart';
 import 'package:fynix/screens/almacen_screen.dart';
 import 'package:fynix/screens/finanzas_screen.dart';
@@ -13,16 +12,21 @@ import 'package:fynix/services/auth_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
-  await dotenv.load(fileName: ".env");
-
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
 
+  // await dotenv.load(fileName: ".env");
+  // await Supabase.initialize(
+  //   url: dotenv.env["SUPABASE_URL"]!,
+  //   anonKey: dotenv.env["SUPABASE_ANON_KEY"]!,
+  // );
+
   await Supabase.initialize(
-    url: dotenv.env["SUPABASE_URL"]!,
-    anonKey: dotenv.env["SUPABASE_ANON_KEY"]!,
+    url: const String.fromEnvironment("SUPABASE_URL"),
+    anonKey: const String.fromEnvironment("SUPABASE_ANON_KEY"),
   );
 
   runApp(AppState());

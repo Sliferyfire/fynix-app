@@ -14,17 +14,25 @@ class AuthService with ChangeNotifier {
     print(response.user);
   }
 
-  Future<void> signUpNewUser(
+  Future<AuthResponse?> signUpNewUser(
     String email,
     String password,
     String username,
   ) async {
-    final AuthResponse response = await _supabase.auth.signUp(
-      email: email,
-      password: password,
-      data: {"username": username},
-    );
-    print(response.user);
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {"username": username},
+      );
+      return response;
+    } on AuthException catch (e) {
+      debugPrint("AuthException: $e");
+      rethrow;
+    } catch (e) {
+      debugPrint("Error inesperado: $e");
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {

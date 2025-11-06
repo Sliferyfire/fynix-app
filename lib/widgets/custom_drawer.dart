@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fynix/providers/user_data_provider.dart';
 import 'package:fynix/services/auth_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -7,6 +9,10 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserDataProvider>(context); 
+    // final authService = Provider.of<AuthService>(context); 
+    final user = userProvider.user;
+
     return Drawer(
       width: 250,
       child: Container(
@@ -14,12 +20,28 @@ class CustomDrawer extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(color: Color(0xFF06373E)),
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 50, color: Colors.black87),
+              DrawerHeader(
+                decoration: const BoxDecoration(color: Color(0xFF06373E)),
+                child: Column(
+                  children: [
+                    const CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 15,),
+                    Text(
+                      "${user?.userMetadata?["username"]}",
+                      style: GoogleFonts.lilitaOne(
+                        color: Color(0xffFFFFFF),
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               drawerItem(Icons.home, "Inicio", "home", context),

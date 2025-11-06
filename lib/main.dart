@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fynix/controllers/auth_controller.dart';
 import 'package:fynix/providers/user_data_provider.dart';
 import 'package:fynix/screens/almacen_screen.dart';
 import 'package:fynix/screens/finanzas_screen.dart';
@@ -41,12 +42,15 @@ class AppState extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthService(),
-          
         ),
         ChangeNotifierProvider(
           create: (_) => UserDataProvider(),
-        )
+        ), 
       ],
+      builder: (context, _) => ChangeNotifierProvider<AuthController>(
+        create: (_) => AuthController(context.read<AuthService>()),
+        child: const MainApp(),
+      ),
       child: MainApp(),
     );
   }

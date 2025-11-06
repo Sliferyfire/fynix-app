@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fynix/providers/user_data_provider.dart';
 import 'package:fynix/widgets/custom_drawer.dart';
 import 'package:fynix/widgets/calendario_widget.dart';
+import 'package:provider/provider.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -8,6 +10,10 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final userProvider = Provider.of<UserDataProvider>(context); 
+    final user = userProvider.user;
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -44,7 +50,7 @@ class HomeScreen extends StatelessWidget {
               decoration: BoxDecoration(              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, 
-                children: const [
+                children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
@@ -60,7 +66,7 @@ class HomeScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      "USUARIO",
+                      "${user?.userMetadata?["username"]}",
                       style: TextStyle(
                         fontSize: 30,
                         color: Colors.white,

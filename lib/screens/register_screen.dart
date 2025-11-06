@@ -1,7 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fynix/controllers/auth_controller.dart';
 import 'package:fynix/providers/auth_form_provider.dart';
-import 'package:fynix/services/auth_service.dart';
+// import 'package:fynix/services/auth_service.dart';
 import 'package:fynix/widgets/card_container.dart';
 import 'package:fynix/widgets/fondo_login.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -52,7 +53,7 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    // final authService = Provider.of<AuthService>(context);
     final authForm = Provider.of<AuthProvider>(context);
 
     return SizedBox(
@@ -182,18 +183,7 @@ class _LoginForm extends StatelessWidget {
               onPressed:
                   authForm.isLoading
                       ? null
-                      : () async {
-                        FocusScope.of(context).unfocus();
-                        if (!authForm.isValidForm()) return;
-                        authForm.isLoading = true;
-                        authService.signUpNewUser(
-                          authForm.email,
-                          authForm.password,
-                          authForm.username,
-                        );
-                        authForm.isLoading = false;
-                        Navigator.pushReplacementNamed(context, "home");
-                      },
+                      : () => context.read<AuthController>().handleSignUp(context, authForm),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 80, vertical: 15),
                 child: Text(

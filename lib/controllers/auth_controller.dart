@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:fynix/providers/auth_form_provider.dart';
-import 'package:fynix/services/auth_service.dart';
-import 'package:fynix/widgets/custom_modal.dart';
+import 'package:fynix/services/database/auth_service.dart';
+import 'package:fynix/widgets/auth/auth_custom_modal.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController with ChangeNotifier {
   final AuthService _authService;
-  final Color _textColor = Color(0x88000000);
+  // final Color _textColor = Color(0x88000000);
+  final TextStyle _textStyle = GoogleFonts.lilitaOne(
+    fontSize: 20,
+    color: Color(0x88000000),
+  );
 
   AuthController(this._authService);
 
   Future<void> handleSignUp(BuildContext context, AuthProvider authForm) async {
     FocusScope.of(context).unfocus();
     if (!authForm.isValidForm()) return;
-
     authForm.isLoading = true;
 
     try {
@@ -23,7 +26,7 @@ class AuthController with ChangeNotifier {
         authForm.password,
         authForm.username,
       );
-      if (response != null && response.user != null) {
+      if (response != null) {
         await showDialog(
           context: context,
           builder:
@@ -33,64 +36,52 @@ class AuthController with ChangeNotifier {
                   children: [
                     Text(
                       "Usuario registrado correctamente.",
-                      style: GoogleFonts.lilitaOne(
-                        fontSize: 20,
-                        color: _textColor,
-                      ),
+                      style: _textStyle,
                     ),
                     SizedBox(height: 20),
                     Text(
                       "Confirma tu registro en tu correo electronico.",
-                      style: GoogleFonts.lilitaOne(
-                        fontSize: 20,
-                        color: _textColor,
-                      ),
+                      style: _textStyle,
                     ),
                     SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        "Aceptar",
-                        style: GoogleFonts.lilitaOne(
-                          fontSize: 20,
-                          color: _textColor,
-                        ),
-                      ),
-                    ),
+                    _AcceptButton(textStyle: _textStyle),
                   ],
                 ),
               ),
         );
-      } else {
-        await showDialog(
-          context: context,
-          builder:
-              (context) => CustomModal(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Error, la respuesta de autenticacion fue inesperada.",
-                      style: GoogleFonts.lilitaOne(
-                        fontSize: 20,
-                        color: _textColor,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        "Aceptar",
-                        style: GoogleFonts.lilitaOne(
-                          fontSize: 20,
-                          color: _textColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      } 
+    } on AuthException catch (e) {
+      await showDialog(
+        context: context,
+        builder:
+            (context) => CustomModal(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(e.message, style: _textStyle),
+                  SizedBox(height: 20),
+                  _AcceptButton(textStyle: _textStyle),
+                ],
               ),
-        );
+            ),
+      );
+    } finally {
+      authForm.isLoading = false;
+    }
+  }
+
+  Future<void> handleSignIn(BuildContext context, AuthProvider authForm) async {
+    FocusScope.of(context).unfocus();
+    if (!authForm.isValidForm()) return;
+    authForm.isLoading = true;
+
+    try {
+      final response = await _authService.signInUser(
+        authForm.email,
+        authForm.password,
+      );
+      if (response?.user != null) {
+        Navigator.pushReplacementNamed(context, "/home");
       }
     } on AuthException catch (e) {
       await showDialog(
@@ -100,54 +91,9 @@ class AuthController with ChangeNotifier {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "Error de autenticacion: $e",
-                    style: GoogleFonts.lilitaOne(
-                      fontSize: 20,
-                      color: _textColor,
-                    ),
-                  ),
-                  SizedBox(height: 20,),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      "Aceptar",
-                      style: GoogleFonts.lilitaOne(
-                        fontSize: 20,
-                        color: _textColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-      );
-    } catch (e) {
-      await showDialog(
-        context: context,
-        builder:
-            (context) => CustomModal(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Error inesperado. Por favor intente de nuevo.",
-                    style: GoogleFonts.lilitaOne(
-                      fontSize: 20,
-                      color: _textColor,
-                    ),
-                  ),
-                  SizedBox(height: 20,),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      "Aceptar",
-                      style: GoogleFonts.lilitaOne(
-                        fontSize: 20,
-                          color: _textColor,
-                      ),
-                    ),
-                  ),
+                  Text(e.message, style: _textStyle),
+                  SizedBox(height: 20),
+                  _AcceptButton(textStyle: _textStyle),
                 ],
               ),
             ),
@@ -155,5 +101,40 @@ class AuthController with ChangeNotifier {
     } finally {
       authForm.isLoading = false;
     }
+  }
+
+  Future<void> handleGoogleSignIn(BuildContext context) async {
+    try {
+      await _authService.googleSignIn(); 
+    } on AuthException catch(e) {
+      await showDialog(
+        context: context,
+        builder:
+            (context) => CustomModal(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(e.message, style: _textStyle),
+                  SizedBox(height: 20),
+                  _AcceptButton(textStyle: _textStyle),
+                ],
+              ),
+            ),
+      );
+    }
+  }
+}
+
+class _AcceptButton extends StatelessWidget {
+  final TextStyle textStyle;
+
+  const _AcceptButton({required this.textStyle});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => Navigator.of(context).pop(),
+      child: Text("Aceptar", style: textStyle),
+    );
   }
 }

@@ -36,6 +36,11 @@ class Win32Window {
   // |Show| is called. Returns true if the window was created successfully.
   bool Create(const std::wstring& title, const Point& origin, const Size& size);
 
+  // Dispatches link if any.  
+  // This method enables our app to be with a single instance too. 
+  // This is optional but mandatory if you want to catch further links in same app.
+  bool SendAppLinkToInstance(const std::wstring& title);
+
   // Show the current window. Returns true if the window was successfully shown.
   bool Show();
 

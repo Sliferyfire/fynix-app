@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:fynix/controllers/auth_controller.dart';
 import 'package:fynix/providers/auth_form_provider.dart';
 // import 'package:fynix/services/auth_service.dart';
-import 'package:fynix/widgets/card_container.dart';
-import 'package:fynix/widgets/fondo_login.dart';
+import 'package:fynix/widgets/auth/auth_card_container.dart';
+import 'package:fynix/widgets/auth/auth_background.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -228,7 +228,7 @@ class _RegisterFooter extends StatelessWidget {
               recognizer:
                   TapGestureRecognizer()
                     ..onTap = () {
-                      Navigator.pushNamed(context, 'login');
+                      Navigator.pushNamed(context, '/login');
                     },
             ),
           ],

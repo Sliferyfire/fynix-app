@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fynix/controllers/auth_controller.dart';
 import 'package:fynix/providers/auth_form_provider.dart';
-import 'package:fynix/services/auth_service.dart';
-import 'package:fynix/widgets/card_container.dart';
-import 'package:fynix/widgets/fondo_login.dart';
+import 'package:fynix/widgets/auth/auth_card_container.dart';
+import 'package:fynix/widgets/auth/auth_background.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -50,28 +50,28 @@ class LoginScreen extends StatelessWidget {
 class _LoginForm extends StatelessWidget {
   // const _LoginForm({super.key});
 
+  final Color _textColor = Color(0x88000000);
+  final Color _backInputColor = Color(0xFFC8D3D4);
+
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final loginForm = Provider.of<AuthProvider>(context);
+    // final authService = Provider.of<AuthService>(context);
+    final authForm = Provider.of<AuthProvider>(context);
 
     return SizedBox(
       child: Form(
-        key: loginForm.formKey,
+        key: authForm.formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           children: [
             TextFormField(
               textAlign: TextAlign.center,
-              style: GoogleFonts.lilitaOne(
-                color: Color(0x88000000),
-                fontSize: 20,
-              ),
+              style: GoogleFonts.lilitaOne(color: _textColor, fontSize: 20),
               autocorrect: true,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Color(0xFFC8D3D4),
+                fillColor: _backInputColor,
                 contentPadding: EdgeInsets.all(16),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -83,15 +83,15 @@ class _LoginForm extends StatelessWidget {
                 ),
                 hintText: "Email",
                 hintStyle: GoogleFonts.lilitaOne(
-                  color: Color(0x88000000),
+                  color: _textColor,
                   fontSize: 20,
                 ),
               ),
-              onChanged: (value) => {loginForm.email = value},
+              onChanged: (value) => {authForm.email = value},
               validator: (value) {
                 String pattern =
                     r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
-                RegExp regExp = new RegExp(pattern);
+                RegExp regExp = RegExp(pattern);
                 return regExp.hasMatch(value ?? '')
                     ? null
                     : "El correo no es valido.";
@@ -100,16 +100,13 @@ class _LoginForm extends StatelessWidget {
             SizedBox(height: 30),
             TextFormField(
               textAlign: TextAlign.center,
-              style: GoogleFonts.lilitaOne(
-                color: Color(0x88000000),
-                fontSize: 20,
-              ),
+              style: GoogleFonts.lilitaOne(color: _textColor, fontSize: 20),
               autocorrect: true,
               obscureText: true,
               keyboardType: TextInputType.text,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Color(0xFFC8D3D4),
+                fillColor: _backInputColor,
                 contentPadding: EdgeInsets.all(16),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -121,13 +118,13 @@ class _LoginForm extends StatelessWidget {
                 ),
                 hintText: "Password",
                 hintStyle: GoogleFonts.lilitaOne(
-                  color: Color(0x88000000),
+                  color: _textColor,
                   fontSize: 20,
                 ),
               ),
-              onChanged: (value) => {loginForm.password = value},
+              onChanged: (value) => {authForm.password = value},
               validator: (value) {
-                if (value != null && value.length >= 6) {
+                if (value != null && value.length >= 8) {
                   return null;
                 } else {
                   return "Contraseña de al menos 8 caracteres.";
@@ -142,27 +139,20 @@ class _LoginForm extends StatelessWidget {
               ),
               disabledColor: Colors.grey,
               elevation: 0,
-              color: Color(0xFFC8D3D4),
+              color: _backInputColor,
               onPressed:
-                  loginForm.isLoading
+                  authForm.isLoading
                       ? null
-                      : () async {
-                        FocusScope.of(context).unfocus();
-                        if (!loginForm.isValidForm()) return;
-                        loginForm.isLoading = true;
-                        authService.signInUser(
-                          loginForm.email,
-                          loginForm.password,
-                        );
-                        loginForm.isLoading = false;
-                        Navigator.pushReplacementNamed(context, "home");
-                      },
+                      : () => context.read<AuthController>().handleSignIn(
+                        context,
+                        authForm,
+                      ),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 80, vertical: 15),
                 child: Text(
                   "Login",
                   style: GoogleFonts.lilitaOne(
-                    color: Color(0x88000000),
+                    color: _textColor,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -171,30 +161,6 @@ class _LoginForm extends StatelessWidget {
             ),
             SizedBox(height: 30),
             _LoginFooter(),
-            SizedBox(height: 30,),
-            MaterialButton(
-              minWidth: double.infinity,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              disabledColor: Colors.grey,
-              elevation: 0,
-              color: Color(0xFFC8D3D4),
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, "home");
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 15),
-                child: Text(
-                  "Boton temporal por si no sirve el login.",
-                  style: GoogleFonts.lilitaOne(
-                    color: Color(0x88000000),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -204,9 +170,12 @@ class _LoginForm extends StatelessWidget {
 
 class _LoginFooter extends StatelessWidget {
   // const _LoginFooter({super.key});
+  final Color _textColor = Color(0x88000000);
 
   @override
   Widget build(BuildContext context) {
+    // final authService = Provider.of<AuthService>(context);
+
     return Column(
       children: [
         Row(
@@ -215,35 +184,25 @@ class _LoginFooter extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Divider(
-                  thickness: 3,
-                  height: 0,
-                  color: Color(0x88000000),
-                ),
+                child: Divider(thickness: 3, height: 0, color: _textColor),
               ),
             ),
             Text(
               "OR",
-              style: GoogleFonts.lilitaOne(
-                color: Color(0x88000000), 
-                fontSize: 18
-              ),
+              style: GoogleFonts.lilitaOne(color: _textColor, fontSize: 18),
             ),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Divider(
-                  thickness: 3,
-                  height: 0,
-                  color: Color(0x88000000),
-                ),
+                child: Divider(thickness: 3, height: 0, color: _textColor),
               ),
             ),
           ],
         ),
+        SizedBox(height: 15,),
         Center(
           child: GestureDetector(
-            onTap: () {},
+            onTap: () => context.read<AuthController>().handleGoogleSignIn(context), 
             child: CircleAvatar(
               radius: 20,
               backgroundColor: Color(0xff6F9698),
@@ -251,17 +210,18 @@ class _LoginFooter extends StatelessWidget {
             ),
           ),
         ),
+        SizedBox(height: 15,),
         Center(
           child: RichText(
             textAlign: TextAlign.center,
             text: TextSpan(
               text: "¿No tienes una cuenta? ",
-              style: GoogleFonts.lilitaOne(color: Color(0x88000000), fontSize: 18),
+              style: GoogleFonts.lilitaOne(color: _textColor, fontSize: 18),
               children: [
                 TextSpan(
                   text: " Registrate",
                   style: GoogleFonts.lilitaOne(
-                    color: Color(0x88000000),
+                    color: _textColor,
                     fontSize: 18,
                     fontStyle: FontStyle.italic,
                     decoration: TextDecoration.underline,
@@ -269,7 +229,7 @@ class _LoginFooter extends StatelessWidget {
                   recognizer:
                       TapGestureRecognizer()
                         ..onTap = () {
-                          Navigator.pushNamed(context, 'register');
+                          Navigator.pushNamed(context, '/register');
                         },
                 ),
               ],
@@ -280,5 +240,3 @@ class _LoginFooter extends StatelessWidget {
     );
   }
 }
-
-

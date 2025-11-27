@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:fynix/models/task_model.dart';
+import 'package:fynix/services/offline/offline_tasks_service.dart';
 import 'package:fynix/widgets/home/notification_icon.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:provider/provider.dart';
 import 'package:fynix/widgets/custom_drawer.dart';
-import 'home_screen.dart';
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import 'package:fynix/helpers/pdf_export_helper.dart'; 
 
@@ -24,7 +20,6 @@ class AlmacenScreen extends StatefulWidget {
 }
 
 class _AlmacenScreenState extends State<AlmacenScreen> {
-  List<Tasks> allTasks = [];
   List<Product> products = [];
   List<Product> productsFiltrados = [];
   TextEditingController searchController = TextEditingController();
@@ -36,7 +31,6 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTasks();
     _initializeProducts();
     searchController.addListener(_filterProducts);
   }
@@ -45,18 +39,6 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
   void dispose() {
     searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? tasksString = prefs.getString('user_tasks');
-
-    if (tasksString != null) {
-      final List<dynamic> taskListJson = jsonDecode(tasksString);
-      setState(() {
-        allTasks = taskListJson.map((json) => Tasks.fromJson(json)).toList();
-      });
-    }
   }
 
   void _initializeProducts() {
@@ -586,6 +568,7 @@ Future<void> _exportToPDF() async {
 
   @override
   Widget build(BuildContext context) {
+    final offlineTasksService = Provider.of<OfflineTasksService>(context);
     return Scaffold(
       drawer: const CustomDrawer(),
       body: CustomScrollView(
@@ -602,7 +585,7 @@ Future<void> _exportToPDF() async {
               ),
             ),
             actions: [
-              NotificationIcon(allTasks: allTasks),
+              NotificationIcon(allTasks: offlineTasksService.tasks),
               const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(

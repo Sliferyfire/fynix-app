@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   connectivity_plus
+  firebase_core
   permission_handler_windows
   printing
   url_launcher_windows

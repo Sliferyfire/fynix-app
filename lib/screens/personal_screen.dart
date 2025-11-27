@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fynix/models/task_model.dart';
+import 'package:fynix/services/offline/offline_tasks_service.dart';
 import 'package:fynix/widgets/home/notification_icon.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:fynix/widgets/custom_drawer.dart';
@@ -595,6 +597,7 @@ Future<void> _exportarAPDF() async {
 
   @override
   Widget build(BuildContext context) {
+    final offlineTasksService = Provider.of<OfflineTasksService>(context);
     return Scaffold(
       drawer: const CustomDrawer(),
       floatingActionButton: FloatingActionButton(
@@ -616,7 +619,7 @@ Future<void> _exportarAPDF() async {
               ),
             ),
             actions: [
-              NotificationIcon(allTasks: allTasks),
+              NotificationIcon(allTasks: offlineTasksService.tasks),
               const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(

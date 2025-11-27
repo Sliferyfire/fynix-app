@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:fynix/controllers/auth_controller.dart';
 import 'package:fynix/providers/user_data_provider.dart';
@@ -15,6 +16,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 // import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -23,7 +27,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
 
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // await dotenv.load(fileName: ".env");
+
   // await Supabase.initialize(
   //   url: dotenv.env["SUPABASE_URL"]!,
   //   anonKey: dotenv.env["SUPABASE_ANON_KEY"]!,
@@ -78,13 +86,46 @@ class _MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
 
+    Future<void> _setFcmToken(String fcmToken) async {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from('PROFILES').upsert({
+          'id': userId,
+          'fcm_token': fcmToken,
+        });
+      }
+    }
+
+    supabase.auth.onAuthStateChange.listen((event) async {
+      if (event.event == AuthChangeEvent.signedIn) {
+        await FirebaseMessaging.instance.requestPermission;
+        await FirebaseMessaging.instance.getAPNSToken();
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await _setFcmToken(fcmToken);
+        }
+      }
+    });
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) async {
+      await _setFcmToken(fcmToken);
+    });
+
+    FirebaseMessaging.onMessage.listen((payload) {
+      final notification = payload.notification;
+      if (notification != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${notification.title} ${notification.body}')),
+        );
+      }
+    });
+
     // Escuchar el evento de login real
     supabase.auth.onAuthStateChange.listen((data) {
       final session = data.session;
       context.read<AuthService>().onLogin(context);
 
       if (session != null) {
-
         navigatorKey.currentState?.pushNamedAndRemoveUntil(
           "/home",
           (_) => false,

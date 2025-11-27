@@ -41,7 +41,6 @@ flutter:
   assets:
    - assets/
    - assets/waves/
-   - .env
 
 platforms:
   linux:

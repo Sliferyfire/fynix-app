@@ -103,7 +103,13 @@ class TaskCard extends StatelessWidget {
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (task.status != 'deleted') ...[
+                                  if (task.status == 'completado') ...[
+                                    const Text("Completada", style: TextStyle(color: Colors.black))
+                                  ]
+                                  else if (task.status == 'deleted') ...[
+                                    const Text("Eliminada", style: TextStyle(color: Colors.black)),
+                                  ]
+                                  else ...[
                                     IconButton(
                                       icon: const Icon(
                                         Icons.edit,
@@ -123,10 +129,7 @@ class TaskCard extends StatelessWidget {
                                       onPressed:
                                           () => {offlineTasksService.deleteTaskOffline(task)},
                                     ),
-                                  ]else if (task.status == 'completed')
-                                      const Text("Completada", style: TextStyle(color: Colors.black))
-                                   else if (task.status == 'deleted')
-                                      const Text("Eliminada", style: TextStyle(color: Colors.black)),
+                                  ]
                                 ],
                               ),
                             ),

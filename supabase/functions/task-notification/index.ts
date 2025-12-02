@@ -21,8 +21,11 @@ Deno.serve(async () => {
   }
 
   if (!tareas || tareas.length == 0) {
+    console.log("No se encontraron tareas para hoy:", today);
     return new Response(JSON.stringify({ message: "No hay tareas para hoy" }));
   }
+
+  console.log(`Tareas encontradas para hoy (${today}): ${tareas.length}`);
 
   // 1. Obtener la variable de entorno
   const serviceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");

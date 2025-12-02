@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:fynix/services/offline/offline_tasks_service.dart';
 import 'package:fynix/widgets/home/notification_icon.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:fynix/widgets/custom_drawer.dart';
 import 'package:pdf/widgets.dart' as pw;
-
-import 'package:fynix/helpers/pdf_export_helper.dart'; 
+import 'package:fynix/helpers/pdf_export_helper.dart';
 
 class AlmacenScreen extends StatefulWidget {
   const AlmacenScreen({super.key});
@@ -24,14 +25,17 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
   List<Product> productsFiltrados = [];
   TextEditingController searchController = TextEditingController();
 
-  // --- Filtros avanzados ---
-  String? filtroCampoSeleccionado; // 'name', 'sku'
+  String? filtroCampoSeleccionado; 
   String? filtroMesSeleccionado;
+
+  static const String _productsKey = 'products_list';
+  bool _mostrarMensajeBienvenida = false;
+  bool _mensajeMostrado = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeProducts();
+    _initializeProducts(); 
     searchController.addListener(_filterProducts);
   }
 
@@ -40,47 +44,102 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
     searchController.dispose();
     super.dispose();
   }
+  
+  Future<void> _initializeProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? productsString = prefs.getString(_productsKey);
 
-  void _initializeProducts() {
-    products = [
-      Product(
-        date: "15 sep 2025",
-        name: "Laptop",
-        sku: "LPT-001",
-        cost: 12000,
-        sale: 15000,
-        stock: 45,
-      ),
-      Product(
-        date: "14 sep 2025",
-        name: "Celular",
-        sku: "CLR-001",
-        cost: 10000,
-        sale: 12500,
-        stock: 120,
-      ),
-      Product(
-        date: "10 sep 2025",
-        name: "Tablet",
-        sku: "TBL-001",
-        cost: 8000,
-        sale: 11000,
-        stock: 30,
-      ),
-    ];
-    productsFiltrados = List.from(products);
+    if (productsString != null) {
+      try {
+        final List<dynamic> productsJson = jsonDecode(productsString);
+        setState(() {
+          products = productsJson
+              .map((json) => Product.fromJson(json as Map<String, dynamic>))
+              .toList();
+          productsFiltrados = List.from(products);
+          _mostrarMensajeBienvenida = false;
+        });
+      } catch (e) {
+        setState(() {
+          products = [];
+          productsFiltrados = [];
+          _mostrarMensajeBienvenida = true;
+        });
+      }
+    } else {
+      setState(() {
+        products = [];
+        productsFiltrados = [];
+        _mostrarMensajeBienvenida = true; 
+      });
+    }
+    
+    if (products.isEmpty && !_mensajeMostrado) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mostrarMensajeBienvenidaPopup();
+      });
+      _mensajeMostrado = true;
+    }
+  }
+  
+  Future<void> _saveProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<Map<String, dynamic>> lista = products.map((p) => p.toJson()).toList();
+    await prefs.setString(_productsKey, jsonEncode(lista));
+  }
+  
+  void _mostrarMensajeBienvenidaPopup() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            "Bienvenido",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AlmacenScreen.textColor,
+            ),
+          ),
+          content: const Text(
+            "Aquí puedes registrar y gestionar todos tus productos, costos de producción y precios de venta.\n\n"
+            "Para comenzar, toca el botón \"Nuevo Producto\" y registra tu primer artículo.",
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.45,
+              color: Colors.black54,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.only(bottom: 12, right: 12),
+          actions: [
+            TextButton(
+              child: const Text(
+                "Cerrar",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AlmacenScreen.accentGreen,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _filterProducts() {
     String query = searchController.text.toLowerCase().trim();
     setState(() {
       productsFiltrados = products.where((product) {
-        // Filtro de búsqueda por texto según el campo seleccionado
         bool matchesSearch = query.isEmpty;
 
         if (!matchesSearch && query.isNotEmpty) {
           if (filtroCampoSeleccionado == null) {
-            // Si no hay campo seleccionado, buscar en Nombre y SKU
             matchesSearch = product.name.toLowerCase().contains(query) ||
                 product.sku.toLowerCase().contains(query);
           } else if (filtroCampoSeleccionado == 'name') {
@@ -92,7 +151,6 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
           matchesSearch = true;
         }
 
-        // Filtro por mes de registro (fecha)
         bool matchesMes = true;
         if (filtroMesSeleccionado != null) {
           matchesMes = product.date.toLowerCase().contains(filtroMesSeleccionado!.toLowerCase());
@@ -260,65 +318,7 @@ class _AlmacenScreenState extends State<AlmacenScreen> {
     );
   }
 
-// Reemplaza el método _exportToPDF() con este código simplificado:
-Future<void> _exportToPDF() async {
-  Map<String, dynamic>? filters;
-  
-  if (filtroCampoSeleccionado != null || filtroMesSeleccionado != null) {
-    filters = {};
-    if (filtroCampoSeleccionado != null) {
-      filters['Campo'] = _getNombreCampo(filtroCampoSeleccionado!);
-    }
-    if (filtroMesSeleccionado != null) {
-      filters['Mes'] = filtroMesSeleccionado!.toUpperCase();
-    }
-  }
-
-  await PDFExportHelper.exportToPDF<Product>(
-    context: context,
-    data: productsFiltrados,
-    title: 'Reporte de Almacén',
-    fileName: 'Almacen',
-    filters: filters,
-    buildContent: (products) {
-      return [
-        pw.Text(
-          'Resumen de Productos',
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 15),
-        PDFExportHelper.buildTable(
-          headers: ['Producto', 'SKU', 'Stock', 'Costo', 'Venta', 'Ganancia', 'Margen'],
-          data: products.map((product) {
-            return [
-              product.name,
-              product.sku,
-              product.stock.toString(),
-              '\$${product.cost.toStringAsFixed(0)}',
-              '\$${product.sale.toStringAsFixed(0)}',
-              '\$${product.profit.toStringAsFixed(0)}',
-              '${product.margin.toStringAsFixed(2)}%',
-            ];
-          }).toList(),
-        ),
-        pw.SizedBox(height: 30),
-        pw.Text(
-          'Estadísticas',
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 10),
-        pw.Text('Total de productos: ${products.length}'),
-        pw.Text(
-          'Stock total: ${products.fold<int>(0, (sum, p) => sum + p.stock)}',
-        ),
-        pw.Text(
-          'Valor total en inventario: \$${products.fold<double>(0, (sum, p) => sum + (p.cost * p.stock)).toStringAsFixed(0)} MXN',
-        ),
-      ];
-    },
-  );
-}
-
+  // Se actualiza para llamar a _saveProducts()
   void _agregarProducto() {
     final nombreController = TextEditingController();
     final skuController = TextEditingController();
@@ -386,7 +386,7 @@ Future<void> _exportToPDF() async {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async { // Marcar como async
               if (nombreController.text.trim().isEmpty ||
                   skuController.text.trim().isEmpty) return;
 
@@ -406,7 +406,9 @@ Future<void> _exportToPDF() async {
                   ),
                 );
                 _filterProducts();
+                _mostrarMensajeBienvenida = false; // Ocultar mensaje al agregar
               });
+              await _saveProducts(); // GUARDAR en local
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Producto agregado exitosamente')),
@@ -423,6 +425,7 @@ Future<void> _exportToPDF() async {
     );
   }
 
+  // Se actualiza para llamar a _saveProducts()
   void _editarProducto(Product product) async {
     final nombreController = TextEditingController(text: product.name);
     final skuController = TextEditingController(text: product.sku);
@@ -500,7 +503,7 @@ Future<void> _exportToPDF() async {
           ),
           ElevatedButton(
             child: const Text('Guardar Cambios'),
-            onPressed: () {
+            onPressed: () async { // Marcar como async
               try {
                 final newCost = double.parse(costoController.text);
                 final newSale = double.parse(ventaController.text);
@@ -520,6 +523,7 @@ Future<void> _exportToPDF() async {
                     _filterProducts();
                   }
                 });
+                await _saveProducts(); // GUARDAR en local
                 Navigator.of(dialogContext).pop('SAVED');
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -544,7 +548,12 @@ Future<void> _exportToPDF() async {
       setState(() {
         products.removeWhere((p) => p.sku == product.sku);
         _filterProducts();
+        // Mostrar mensaje si ya no hay productos
+        if (products.isEmpty) {
+          _mostrarMensajeBienvenida = true; 
+        }
       });
+      await _saveProducts(); // GUARDAR en local
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Producto ${product.name} (SKU: ${product.sku}) eliminado.'),
@@ -565,10 +574,71 @@ Future<void> _exportToPDF() async {
     const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
+  
+  // Se mantiene _exportToPDF (usando el helper)
+  Future<void> _exportToPDF() async {
+    Map<String, dynamic>? filters;
+    
+    if (filtroCampoSeleccionado != null || filtroMesSeleccionado != null) {
+      filters = {};
+      if (filtroCampoSeleccionado != null) {
+        filters['Campo'] = _getNombreCampo(filtroCampoSeleccionado!);
+      }
+      if (filtroMesSeleccionado != null) {
+        filters['Mes'] = filtroMesSeleccionado!.toUpperCase();
+      }
+    }
+
+    await PDFExportHelper.exportToPDF<Product>(
+      context: context,
+      data: productsFiltrados,
+      title: 'Reporte de Almacén',
+      fileName: 'Almacen',
+      filters: filters,
+      buildContent: (products) {
+        return [
+          pw.Text(
+            'Resumen de Productos',
+            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 15),
+          PDFExportHelper.buildTable(
+            headers: ['Producto', 'SKU', 'Stock', 'Costo', 'Venta', 'Ganancia', 'Margen'],
+            data: products.map((product) {
+              return [
+                product.name,
+                product.sku,
+                product.stock.toString(),
+                '\$${product.cost.toStringAsFixed(0)}',
+                '\$${product.sale.toStringAsFixed(0)}',
+                '\$${product.profit.toStringAsFixed(0)}',
+                '${product.margin.toStringAsFixed(2)}%',
+              ];
+            }).toList(),
+          ),
+          pw.SizedBox(height: 30),
+          pw.Text(
+            'Estadísticas',
+            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Text('Total de productos: ${products.length}'),
+          pw.Text(
+            'Stock total: ${products.fold<int>(0, (sum, p) => sum + p.stock)}',
+          ),
+          pw.Text(
+            'Valor total en inventario: \$${products.fold<double>(0, (sum, p) => sum + (p.cost * p.stock)).toStringAsFixed(0)} MXN',
+          ),
+        ];
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final offlineTasksService = Provider.of<OfflineTasksService>(context);
+
+    final offlineTaskService = Provider.of<OfflineTasksService>(context); 
+
     return Scaffold(
       drawer: const CustomDrawer(),
       body: CustomScrollView(
@@ -585,7 +655,7 @@ Future<void> _exportToPDF() async {
               ),
             ),
             actions: [
-              NotificationIcon(allTasks: offlineTasksService.tasks),
+              NotificationIcon(allTasks: offlineTaskService.tasks),
               const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -593,7 +663,7 @@ Future<void> _exportToPDF() async {
               title: Container(),
               background: Container(
                 color: AlmacenScreen.headerColor,
-                padding: const EdgeInsets.only(top: 80, bottom: 20, left: 16, right: 16),
+                padding: const EdgeInsets.only(top: 20, bottom: 20, left: 16, right: 16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -674,7 +744,7 @@ Future<void> _exportToPDF() async {
                             ),
                           ),
                         ),
-                        _buildProductsList(),
+                        _buildProductsList(), // Se adapta para mostrar un mensaje si no hay resultados
                       ],
                     ),
                   ),
@@ -688,7 +758,7 @@ Future<void> _exportToPDF() async {
     );
   }
 
-  // --- Widget de Barra de Búsqueda y Filtros ---
+  // --- Widget de Barra de Búsqueda y Filtros (Se mantiene la estructura original) ---
   Widget _buildSearchBarAndFilter() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -755,7 +825,7 @@ Future<void> _exportToPDF() async {
     );
   }
 
-  // --- Widget del Botón de Exportar a PDF ---
+  // --- Widget del Botón de Exportar a PDF (Se mantiene) ---
   Widget _buildExportButton() {
     return Container(
       transform: Matrix4.translationValues(0.0, 6.0, 0.0),
@@ -784,6 +854,7 @@ Future<void> _exportToPDF() async {
   }
 
   Widget _buildProductsList() {
+
     if (productsFiltrados.isEmpty) {
       return Center(
         child: Padding(
@@ -839,11 +910,30 @@ class Product {
 
   double get profit => sale - cost;
   double get margin => cost > 0 ? (profit / sale) * 100 : 0;
+  
+  // Convertir a JSON
+  Map<String, dynamic> toJson() => {
+    'date': date,
+    'name': name,
+    'sku': sku,
+    'cost': cost,
+    'sale': sale,
+    'stock': stock,
+  };
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      date: json['date'] as String,
+      name: json['name'] as String,
+      sku: json['sku'] as String,
+      cost: (json['cost'] as num).toDouble(),
+      sale: (json['sale'] as num).toDouble(),
+      stock: (json['stock'] as num).toInt(),
+    );
+  }
 }
 
-// ==========================================================
-// CLASE MODIFICADA: Se eliminan las filas de Ganancia y Margen.
-// ==========================================================
+
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onEdit;
@@ -921,7 +1011,6 @@ class ProductCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // --- Solo se deja Costo y Venta ---
                 Row(
                   children: [
                     Expanded(
@@ -940,7 +1029,6 @@ class ProductCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                // --- Se eliminaron las filas de Ganancia y Margen ---
               ],
             ),
           ),

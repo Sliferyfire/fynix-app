@@ -53,7 +53,7 @@ class OfflineTasksService with ChangeNotifier {
       t.fechaFinalizacion.day,
     );
 
-    if (t.status == 'completado') return 'completado';
+    if (t.completado == true) return 'completado';
     if (t.status == 'deleted') return 'deleted';
 
     if (fechaTask.isBefore(fechaHoy)) {
@@ -93,10 +93,7 @@ class OfflineTasksService with ChangeNotifier {
   Future<void> loadLocal() async {
     try {
       isLoading = true;
-      // await Localstore.instance.collection('TAREAS').delete();
-      // debugPrint('Base local eliminada por completo');
       final data = await db.collection('TAREAS').get() ?? {};
-      // debugPrint('------Registros: ${data.entries}');
       _tasks =
           data.entries
               .map((e) {
@@ -140,12 +137,16 @@ class OfflineTasksService with ChangeNotifier {
   Future<void> actualizarTareasAtrasadas() async {
     try {
       final ahora = DateTime.now();
+      final hoy = DateTime(ahora.year, ahora.month, ahora.day); 
 
       for (var task in _tasks) {
         final fechaTask = DateTime.parse(task['fechaFinalizacion']);
+        
+        final fechaTaskSoloDia = DateTime(fechaTask.year, fechaTask.month, fechaTask.day);
 
-        if (fechaTask.isBefore(ahora) &&
-            (task['status'] != 'completado' || task['status'] != 'deleted')) {
+        if (fechaTaskSoloDia.isBefore(hoy) &&
+            (task['status'] != 'completado' && task['status'] != 'deleted')) {
+          
           task['status'] = 'atrasado';
           task['pendingSync'] = true;
           await db.collection('TAREAS').doc(task['id']).set(task);
@@ -245,12 +246,16 @@ class OfflineTasksService with ChangeNotifier {
       final userId = _supabase.auth.currentUser?.id;
 
       t.completado = !t.completado;
+
+      String newStatus = getStatus(t);
+
+      t.status = newStatus;
+
       notifyListeners();
 
       final task = t.toMap();
 
-      String status = getStatus(t);
-      task['status'] = status;
+      task['status'] = newStatus;
 
       task['user_id'] = userId;
       task['fechaFinalizacion'] = t.fechaFinalizacion.toIso8601String();
@@ -259,7 +264,6 @@ class OfflineTasksService with ChangeNotifier {
       await db.collection('TAREAS').doc(task['id']).set(task);
 
       await loadLocal();
-
       notifyListeners();
 
       if (_isOnline) await _syncToSupabase();

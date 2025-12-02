@@ -15,7 +15,7 @@ class TasksFormProvider with ChangeNotifier {
   void updateCategoria(String value) {
     task.categoria = value;
     notifyListeners();
-  }
+  } 
 
   void updateFecha(DateTime value) {
     task.fechaFinalizacion = value;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fynix/models/task_model.dart';
 import 'package:fynix/providers/user_data_provider.dart';
-// import 'package:fynix/services/database/tasks_service.dart';
 import 'package:fynix/services/offline/offline_tasks_service.dart';
 import 'package:fynix/widgets/custom_drawer.dart';
 import 'package:fynix/widgets/home/calendario_widget.dart';
